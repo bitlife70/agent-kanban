@@ -6,6 +6,77 @@
 // Audio context for generating sounds
 let audioContext: AudioContext | null = null;
 
+// Volume settings (0-1)
+let soundVolume = 0.5;
+let voiceVolume = 0.8;
+let notificationsEnabled = true;
+
+// Load settings from localStorage
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem('agent-kanban-notifications');
+    if (saved) {
+      const settings = JSON.parse(saved);
+      soundVolume = settings.soundVolume ?? 0.5;
+      voiceVolume = settings.voiceVolume ?? 0.8;
+      notificationsEnabled = settings.enabled ?? true;
+    }
+  } catch (e) {
+    // Ignore
+  }
+}
+
+// Save settings to localStorage
+function saveSettings() {
+  try {
+    localStorage.setItem('agent-kanban-notifications', JSON.stringify({
+      soundVolume,
+      voiceVolume,
+      enabled: notificationsEnabled
+    }));
+  } catch (e) {
+    // Ignore
+  }
+}
+
+// Initialize settings
+loadSettings();
+
+/**
+ * Get current volume settings
+ */
+export function getVolumeSettings() {
+  return {
+    soundVolume,
+    voiceVolume,
+    enabled: notificationsEnabled
+  };
+}
+
+/**
+ * Set sound volume (0-1)
+ */
+export function setSoundVolume(volume: number) {
+  soundVolume = Math.max(0, Math.min(1, volume));
+  saveSettings();
+}
+
+/**
+ * Set voice volume (0-1)
+ */
+export function setVoiceVolume(volume: number) {
+  voiceVolume = Math.max(0, Math.min(1, volume));
+  saveSettings();
+}
+
+/**
+ * Enable/disable notifications
+ */
+export function setNotificationsEnabled(enabled: boolean) {
+  notificationsEnabled = enabled;
+  saveSettings();
+}
+
 function getAudioContext(): AudioContext {
   if (!audioContext) {
     audioContext = new AudioContext();
@@ -16,7 +87,9 @@ function getAudioContext(): AudioContext {
 /**
  * Play a simple beep sound
  */
-function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.3) {
+function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', baseVolume: number = 0.3) {
+  if (!notificationsEnabled || soundVolume === 0) return;
+
   try {
     const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
@@ -28,7 +101,8 @@ function playTone(frequency: number, duration: number, type: OscillatorType = 's
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
 
-    // Fade out
+    // Apply volume setting
+    const volume = baseVolume * soundVolume;
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
@@ -69,6 +143,8 @@ export function playErrorSound() {
  * Speak text using Web Speech API
  */
 export function speak(text: string, lang: string = 'ko-KR') {
+  if (!notificationsEnabled || voiceVolume === 0) return;
+
   if (!('speechSynthesis' in window)) {
     console.warn('Speech synthesis not supported');
     return;
@@ -81,7 +157,7 @@ export function speak(text: string, lang: string = 'ko-KR') {
   utterance.lang = lang;
   utterance.rate = 1.1;
   utterance.pitch = 1.0;
-  utterance.volume = 0.8;
+  utterance.volume = voiceVolume;
 
   // Try to find a Korean voice, fallback to default
   const voices = window.speechSynthesis.getVoices();
@@ -94,6 +170,13 @@ export function speak(text: string, lang: string = 'ko-KR') {
 }
 
 /**
+ * Play test sound for volume adjustment
+ */
+export function playTestSound() {
+  playTone(440, 0.3, 'sine', 0.3);
+}
+
+/**
  * Notify agent status change with sound and voice
  */
 export function notifyStatusChange(
@@ -101,6 +184,8 @@ export function notifyStatusChange(
   status: 'waiting' | 'completed' | 'error',
   message?: string
 ) {
+  if (!notificationsEnabled) return;
+
   const shortName = agentName.length > 20 ? agentName.slice(0, 20) + '...' : agentName;
 
   switch (status) {
