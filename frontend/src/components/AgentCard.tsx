@@ -90,6 +90,46 @@ function AgentCardComponent({ agent, onClick }: AgentCardProps) {
         </p>
       )}
 
+      {/* Session Dashboard Fields */}
+      {agent.goal && (
+        <div className="mb-2 bg-purple-50/50 dark:bg-purple-900/20 rounded px-2 py-1 border-l-2 border-purple-400 dark:border-purple-600">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Goal:</p>
+          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2" title={agent.goal}>
+            {agent.goal}
+          </p>
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      {agent.taskIds && agent.taskIds.length > 0 && (
+        <div className="mb-2">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <span>Progress</span>
+            <span>{agent.progress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${agent.progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Blocker */}
+      {agent.blocker && (
+        <div className="mb-2 bg-red-50/50 dark:bg-red-900/20 rounded px-2 py-1 border-l-2 border-red-400 dark:border-red-600">
+          <p className="text-xs text-red-600 dark:text-red-400">Blocker: {agent.blocker}</p>
+        </div>
+      )}
+
+      {/* Next Action */}
+      {agent.nextAction && (
+        <div className="mb-2 bg-yellow-50/50 dark:bg-yellow-900/20 rounded px-2 py-1 border-l-2 border-yellow-400 dark:border-yellow-600">
+          <p className="text-xs text-yellow-700 dark:text-yellow-400">Next: {agent.nextAction}</p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1.5 text-xs text-gray-600 dark:text-gray-300">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -112,8 +152,13 @@ function AgentCardComponent({ agent, onClick }: AgentCardProps) {
         )}
       </div>
 
-      {(agent.children.length > 0 || agent.parentAgentId) && (
-        <div className="mt-2 pt-2 border-t border-gray-300/50 dark:border-gray-600/50 flex items-center justify-between text-xs">
+      {(agent.children.length > 0 || agent.parentAgentId || (agent.taskIds && agent.taskIds.length > 0)) && (
+        <div className="mt-2 pt-2 border-t border-gray-300/50 dark:border-gray-600/50 flex items-center justify-between text-xs flex-wrap gap-1">
+          {agent.taskIds && agent.taskIds.length > 0 && (
+            <span className="text-green-600 dark:text-green-400 font-medium">
+              📋 {agent.taskIds.length} task{agent.taskIds.length > 1 ? 's' : ''}
+            </span>
+          )}
           {agent.children.length > 0 && (
             <span className="text-blue-600 dark:text-blue-400 font-medium">
               👥 {agent.children.length} sub-agent{agent.children.length > 1 ? 's' : ''}
@@ -140,6 +185,11 @@ export const AgentCard = memo(AgentCardComponent, (prevProps, nextProps) => {
     prev.prompt === next.prompt &&
     prev.taskDescription === next.taskDescription &&
     prev.lastActivity === next.lastActivity &&
-    prev.children.length === next.children.length
+    prev.children.length === next.children.length &&
+    prev.progress === next.progress &&
+    prev.goal === next.goal &&
+    prev.blocker === next.blocker &&
+    prev.nextAction === next.nextAction &&
+    prev.taskIds?.length === next.taskIds?.length
   );
 });

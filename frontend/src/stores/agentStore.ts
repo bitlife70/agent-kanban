@@ -1,12 +1,20 @@
 import { create } from 'zustand';
 import { Agent, AgentStatus } from '../types/agent';
 
+export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
+
 interface AgentStore {
   agents: Map<string, Agent>;
   connected: boolean;
+  connectionState: ConnectionState;
+  reconnectAttempts: number;
+  lastError: string | null;
 
   // Actions
   setConnected: (connected: boolean) => void;
+  setConnectionState: (state: ConnectionState, error?: string) => void;
+  incrementReconnectAttempts: () => void;
+  resetReconnectAttempts: () => void;
   syncAgents: (agents: Agent[]) => void;
   updateAgent: (agent: Agent) => void;
   removeAgent: (agentId: string) => void;
@@ -20,8 +28,26 @@ interface AgentStore {
 export const useAgentStore = create<AgentStore>((set, get) => ({
   agents: new Map(),
   connected: false,
+  connectionState: 'connecting',
+  reconnectAttempts: 0,
+  lastError: null,
 
-  setConnected: (connected) => set({ connected }),
+  setConnected: (connected) => set({
+    connected,
+    connectionState: connected ? 'connected' : 'disconnected'
+  }),
+
+  setConnectionState: (state, error) => set({
+    connectionState: state,
+    connected: state === 'connected',
+    lastError: error || null
+  }),
+
+  incrementReconnectAttempts: () => set((s) => ({
+    reconnectAttempts: s.reconnectAttempts + 1
+  })),
+
+  resetReconnectAttempts: () => set({ reconnectAttempts: 0 }),
 
   syncAgents: (agents) => {
     const agentMap = new Map<string, Agent>();

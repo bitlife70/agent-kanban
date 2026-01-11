@@ -1,7 +1,8 @@
-import { Agent, AgentStatus, TerminalInfo } from './types';
+import { Agent, AgentStatus, TerminalInfo, SessionEvent } from './types';
 
 const HEARTBEAT_TIMEOUT = 30000; // 30 seconds
 const HOOKS_TIMEOUT = 300000; // 5 minutes for hook-based agents
+const MAX_RECENT_EVENTS = 5; // 최근 이벤트 최대 개수
 
 export class AgentRegistry {
   private agents: Map<string, Agent> = new Map();
@@ -36,7 +37,14 @@ export class AgentRegistry {
       lastActivity: now,
       parentAgentId,
       children: [],
-      terminalInfo: terminalInfo || {}
+      terminalInfo: terminalInfo || {},
+      // 세션 대시보드 필드 초기화
+      goal: '',
+      progress: 0,
+      blocker: undefined,
+      nextAction: undefined,
+      recentEvents: [],
+      taskIds: []
     };
 
     this.agents.set(agentId, agent);
@@ -62,6 +70,13 @@ export class AgentRegistry {
   ): Agent | null {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
+
+    // Don't allow status changes for completed or error agents
+    // Once an agent is done, it should stay in that state
+    if (agent.status === 'completed' || agent.status === 'error') {
+      console.log(`[Registry] Ignoring status update for ${agentId}: already in terminal state (${agent.status})`);
+      return agent;
+    }
 
     agent.status = status;
     agent.lastActivity = Date.now();
@@ -152,11 +167,119 @@ export class AgentRegistry {
     return this.getAllAgents().filter(agent => agent.status === status);
   }
 
+  // 세션 대시보드 필드 업데이트
+  updateSessionInfo(
+    agentId: string,
+    updates: {
+      goal?: string;
+      blocker?: string;
+      nextAction?: string;
+    }
+  ): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    if (updates.goal !== undefined) {
+      agent.goal = updates.goal;
+    }
+    if (updates.blocker !== undefined) {
+      agent.blocker = updates.blocker;
+    }
+    if (updates.nextAction !== undefined) {
+      agent.nextAction = updates.nextAction;
+    }
+
+    agent.lastActivity = Date.now();
+    this.resetHeartbeatTimer(agentId);
+    this.onAgentChange?.(agent);
+    return agent;
+  }
+
+  // 진행률 업데이트 (Task 완료 시 호출)
+  updateProgress(agentId: string, progress: number): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    agent.progress = Math.max(0, Math.min(100, progress));
+    agent.lastActivity = Date.now();
+
+    this.onAgentChange?.(agent);
+    return agent;
+  }
+
+  // Task 추가 (Task 생성 시 호출)
+  addTask(agentId: string, taskId: string): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    if (!agent.taskIds.includes(taskId)) {
+      agent.taskIds.push(taskId);
+      agent.lastActivity = Date.now();
+      this.onAgentChange?.(agent);
+    }
+
+    return agent;
+  }
+
+  // Task 제거 (Task 삭제 시 호출)
+  removeTask(agentId: string, taskId: string): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    const index = agent.taskIds.indexOf(taskId);
+    if (index !== -1) {
+      agent.taskIds.splice(index, 1);
+      agent.lastActivity = Date.now();
+      this.onAgentChange?.(agent);
+    }
+
+    return agent;
+  }
+
+  // 최근 이벤트 추가
+  addRecentEvent(
+    agentId: string,
+    event: {
+      type: SessionEvent['type'];
+      description: string;
+      taskId?: string;
+    }
+  ): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    const sessionEvent: SessionEvent = {
+      type: event.type,
+      timestamp: Date.now(),
+      description: event.description,
+      taskId: event.taskId
+    };
+
+    // 최신 이벤트를 앞에 추가
+    agent.recentEvents.unshift(sessionEvent);
+
+    // 최대 개수 유지
+    if (agent.recentEvents.length > MAX_RECENT_EVENTS) {
+      agent.recentEvents = agent.recentEvents.slice(0, MAX_RECENT_EVENTS);
+    }
+
+    agent.lastActivity = Date.now();
+    this.onAgentChange?.(agent);
+    return agent;
+  }
+
   private resetHeartbeatTimer(agentId: string) {
     // Clear existing timer
     const existingTimer = this.heartbeatTimers.get(agentId);
     if (existingTimer) {
       clearTimeout(existingTimer);
+      this.heartbeatTimers.delete(agentId);
+    }
+
+    // Don't set timer for completed or error agents
+    const agent = this.agents.get(agentId);
+    if (agent && (agent.status === 'completed' || agent.status === 'error')) {
+      return;
     }
 
     // Use longer timeout for hook-based agents (fire-and-forget pattern)
@@ -167,7 +290,7 @@ export class AgentRegistry {
     const timer = setTimeout(() => {
       console.log(`Agent ${agentId} heartbeat timeout, marking as error`);
       const agent = this.agents.get(agentId);
-      if (agent && agent.status !== 'completed') {
+      if (agent && agent.status !== 'completed' && agent.status !== 'error') {
         this.updateStatus(agentId, 'error', 'Connection lost (heartbeat timeout)');
       }
     }, timeout);

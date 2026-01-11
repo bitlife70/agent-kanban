@@ -70,6 +70,11 @@ function clearAgentState(sessionId) {
   }
 }
 
+// Generate unique task ID
+function generateTaskId(sessionId, index) {
+  return `task-${sessionId.slice(0, 8)}-${index}-${Date.now().toString(36)}`;
+}
+
 // Create agent name from prompt or directory
 function getAgentName(prompt) {
   // If we have a prompt, use the first part as the name
@@ -240,6 +245,119 @@ async function deregisterAgent(sessionId) {
   return success;
 }
 
+// Create a new task
+async function createTask(sessionId, taskId, title, prompt = '', status = 'doing') {
+  const state = getAgentState(sessionId);
+  if (!state) return false;
+
+  const message = {
+    type: 'task_create',
+    taskId,
+    agentId: state.agentId,
+    timestamp: Date.now(),
+    payload: {
+      title,
+      prompt,
+      status
+    }
+  };
+
+  const success = await sendMessage('task:create', message);
+  if (success) {
+    // Track task in state
+    if (!state.tasks) state.tasks = {};
+    state.tasks[taskId] = { title, status, createdAt: Date.now() };
+    saveAgentState(sessionId, state);
+    log(`Task created: ${taskId} - ${title}`);
+  }
+  return success;
+}
+
+// Update task status
+async function updateTask(sessionId, taskId, status, result = '') {
+  const state = getAgentState(sessionId);
+  if (!state) return false;
+
+  const message = {
+    type: 'task_update',
+    taskId,
+    agentId: state.agentId,
+    timestamp: Date.now(),
+    payload: {
+      status,
+      result
+    }
+  };
+
+  const success = await sendMessage('task:update', message);
+  if (success && state.tasks && state.tasks[taskId]) {
+    state.tasks[taskId].status = status;
+    if (result) state.tasks[taskId].result = result;
+    saveAgentState(sessionId, state);
+    log(`Task updated: ${taskId} - ${status}`);
+  }
+  return success;
+}
+
+// Process TodoWrite tool to create/update tasks
+async function processTodoWrite(sessionId, todoData) {
+  const state = getAgentState(sessionId);
+  if (!state) return;
+
+  const todos = todoData.todos || [];
+  if (!state.todoTaskMap) state.todoTaskMap = {};
+  if (!state.tasks) state.tasks = {};
+
+  for (let i = 0; i < todos.length; i++) {
+    const todo = todos[i];
+    const content = todo.content || '';
+    const status = todo.status || 'pending';
+
+    // Map todo status to task status
+    let taskStatus = 'todo';
+    if (status === 'in_progress') taskStatus = 'doing';
+    else if (status === 'completed') taskStatus = 'done';
+    else if (status === 'pending') taskStatus = 'todo';
+
+    // Check if we already have a task for this todo content
+    let taskId = state.todoTaskMap[content];
+
+    if (!taskId) {
+      // Create new task
+      taskId = generateTaskId(sessionId, i);
+      state.todoTaskMap[content] = taskId;
+      saveAgentState(sessionId, state);
+
+      await createTask(sessionId, taskId, content, todo.activeForm || '', taskStatus);
+    } else {
+      // Update existing task
+      const existingTask = state.tasks[taskId];
+      if (existingTask && existingTask.status !== taskStatus) {
+        await updateTask(sessionId, taskId, taskStatus);
+      }
+    }
+  }
+
+  saveAgentState(sessionId, state);
+}
+
+// Process Task tool to create sub-agent task
+async function processTaskTool(sessionId, taskToolInput) {
+  const state = getAgentState(sessionId);
+  if (!state) return;
+
+  const description = taskToolInput.description || taskToolInput.prompt || 'Sub-agent task';
+  const taskId = generateTaskId(sessionId, Date.now());
+
+  // Create task for the sub-agent
+  await createTask(sessionId, taskId, description, taskToolInput.prompt || '', 'doing');
+
+  // Store mapping for later completion tracking
+  if (!state.subAgentTasks) state.subAgentTasks = [];
+  state.subAgentTasks.push({ taskId, description, startedAt: Date.now() });
+  saveAgentState(sessionId, state);
+}
+
 // Read tool input from stdin
 async function readStdin() {
   return new Promise((resolve) => {
@@ -363,6 +481,15 @@ async function main() {
       const taskDesc = getTaskDescription(toolName, toolInput);
       log(`PreTool: toolName=${toolName}, taskDesc=${taskDesc}`);
       await updateStatus(sessionId, 'working', taskDesc);
+
+      // Handle special tools that create tasks
+      if (toolName === 'TodoWrite') {
+        log(`Processing TodoWrite: ${JSON.stringify(toolInput).substring(0, 200)}`);
+        await processTodoWrite(sessionId, toolInput);
+      } else if (toolName === 'Task') {
+        log(`Processing Task tool: ${JSON.stringify(toolInput).substring(0, 200)}`);
+        await processTaskTool(sessionId, toolInput);
+      }
       break;
 
     case 'posttool':
@@ -430,10 +557,11 @@ Usage:
 
 Commands (for hooks):
   start         Register agent at session start
+  userprompt    Called when user submits a prompt
   pretool       Called before tool use (uses CLAUDE_TOOL_NAME)
   posttool      Called after tool use
   notify        Handle notifications (uses CLAUDE_NOTIFICATION_TYPE)
-  stop          Deregister agent at session end
+  stop          Mark agent as completed at session end
 
 Commands (manual):
   register      Register agent
@@ -443,6 +571,11 @@ Commands (manual):
   idle          Set status to idle
   completed     Set status to completed
   error <msg>   Set status to error
+
+Task Integration:
+  - TodoWrite tool: Automatically creates/updates tasks from Claude's todo list
+  - Task tool: Creates tasks for sub-agent invocations
+  - Tasks are tracked in the Kanban dashboard under the agent
 
 Environment Variables:
   AGENT_KANBAN_SERVER     Server URL (default: http://localhost:3001)

@@ -6,6 +6,14 @@ export interface TerminalInfo {
   sessionId?: string;
 }
 
+// 세션 이벤트 타입
+export interface SessionEvent {
+  type: 'task_created' | 'task_started' | 'task_completed' | 'task_failed' | 'status_changed';
+  timestamp: number;
+  description: string;
+  taskId?: string;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -17,6 +25,13 @@ export interface Agent {
   parentAgentId?: string;
   children: string[];
   terminalInfo: TerminalInfo;
+  // 세션 대시보드 필드
+  goal?: string;
+  progress: number;
+  blocker?: string;
+  nextAction?: string;
+  recentEvents: SessionEvent[];
+  taskIds: string[];
 }
 
 export const STATUS_COLUMNS: AgentStatus[] = ['idle', 'working', 'waiting', 'completed', 'error'];

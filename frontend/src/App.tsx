@@ -7,7 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/ToastContainer';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
-import { KanbanBoard } from './components/KanbanBoard';
+import { HybridKanbanBoard } from './components/HybridKanbanBoard';
 import { AgentTreeView } from './components/AgentTreeView';
 import { StatsPanel } from './components/StatsPanel';
 import { Agent } from './types/agent';
@@ -61,7 +61,7 @@ function AppContent() {
         onClearFilters={clearFilters}
       />
       <main className="flex-1 overflow-hidden">
-        <KanbanBoard />
+        <HybridKanbanBoard />
       </main>
 
       {/* Keyboard shortcuts hint */}
