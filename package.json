@@ -2,7 +2,11 @@
   "name": "agent-kanban",
   "version": "1.0.0",
   "description": "Multi-agent monitoring dashboard with Kanban view",
+  "bin": {
+    "agent-kanban-setup": "./bin/agent-kanban-setup.js"
+  },
   "scripts": {
+    "setup": "node bin/agent-kanban-setup.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
     "dev:server": "cd server && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
