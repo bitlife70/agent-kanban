@@ -3,26 +3,46 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "",
-        "command": "node {{HOOK_PATH}} pretool"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{HOOK_PATH}} pretool"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "",
-        "command": "node {{HOOK_PATH}} posttool"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{HOOK_PATH}} posttool"
+          }
+        ]
       }
     ],
     "Notification": [
       {
-        "matcher": "",
-        "command": "node {{HOOK_PATH}} notify"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{HOOK_PATH}} notify"
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "matcher": "",
-        "command": "node {{HOOK_PATH}} stop"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node {{HOOK_PATH}} stop"
+          }
+        ]
       }
     ]
   }

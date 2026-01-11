@@ -67,26 +67,46 @@ Add to your `.claude/settings.json`:
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "",
-        "command": "node /path/to/agent-kanban/hooks/claude-hook.js pretool"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/agent-kanban/hooks/claude-hook.js pretool"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "",
-        "command": "node /path/to/agent-kanban/hooks/claude-hook.js posttool"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/agent-kanban/hooks/claude-hook.js posttool"
+          }
+        ]
       }
     ],
     "Notification": [
       {
-        "matcher": "",
-        "command": "node /path/to/agent-kanban/hooks/claude-hook.js notify"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/agent-kanban/hooks/claude-hook.js notify"
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "matcher": "",
-        "command": "node /path/to/agent-kanban/hooks/claude-hook.js stop"
+        "matcher": {},
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/agent-kanban/hooks/claude-hook.js stop"
+          }
+        ]
       }
     ]
   }

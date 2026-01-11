@@ -53,26 +53,46 @@ function createHooksConfig(hookPath) {
   return {
     PreToolUse: [
       {
-        matcher: '',
-        command: `node "${hookPath}" pretool`
+        matcher: {},
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${hookPath}" pretool`
+          }
+        ]
       }
     ],
     PostToolUse: [
       {
-        matcher: '',
-        command: `node "${hookPath}" posttool`
+        matcher: {},
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${hookPath}" posttool`
+          }
+        ]
       }
     ],
     Notification: [
       {
-        matcher: '',
-        command: `node "${hookPath}" notify`
+        matcher: {},
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${hookPath}" notify`
+          }
+        ]
       }
     ],
     Stop: [
       {
-        matcher: '',
-        command: `node "${hookPath}" stop`
+        matcher: {},
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${hookPath}" stop`
+          }
+        ]
       }
     ]
   };
@@ -135,14 +155,26 @@ async function install() {
   if (settings.hooks) {
     for (const hookType of Object.keys(newHooks)) {
       if (settings.hooks[hookType]) {
-        // Append to existing hooks
-        settings.hooks[hookType] = [
-          ...settings.hooks[hookType].filter(h =>
-            !h.command.includes('claude-hook.js') &&
-            !h.command.includes('agent-kanban')
-          ),
-          ...newHooks[hookType]
-        ];
+        // Filter out existing agent-kanban hooks (check both old and new format)
+        const filteredHooks = settings.hooks[hookType].filter(h => {
+          // New format: check inside hooks array
+          if (h.hooks && Array.isArray(h.hooks)) {
+            return !h.hooks.some(hook =>
+              hook.command && (
+                hook.command.includes('claude-hook.js') ||
+                hook.command.includes('agent-kanban')
+              )
+            );
+          }
+          // Old format: check command directly
+          if (h.command) {
+            return !h.command.includes('claude-hook.js') &&
+                   !h.command.includes('agent-kanban');
+          }
+          return true;
+        });
+        // Append new hooks
+        settings.hooks[hookType] = [...filteredHooks, ...newHooks[hookType]];
       } else {
         settings.hooks[hookType] = newHooks[hookType];
       }
@@ -197,10 +229,23 @@ async function uninstall() {
 
         for (const hookType of Object.keys(settings.hooks)) {
           const originalLength = settings.hooks[hookType].length;
-          settings.hooks[hookType] = settings.hooks[hookType].filter(h =>
-            !h.command.includes('claude-hook.js') &&
-            !h.command.includes('agent-kanban')
-          );
+          settings.hooks[hookType] = settings.hooks[hookType].filter(h => {
+            // New format: check inside hooks array
+            if (h.hooks && Array.isArray(h.hooks)) {
+              return !h.hooks.some(hook =>
+                hook.command && (
+                  hook.command.includes('claude-hook.js') ||
+                  hook.command.includes('agent-kanban')
+                )
+              );
+            }
+            // Old format: check command directly
+            if (h.command) {
+              return !h.command.includes('claude-hook.js') &&
+                     !h.command.includes('agent-kanban');
+            }
+            return true;
+          });
 
           if (settings.hooks[hookType].length !== originalLength) {
             modified = true;

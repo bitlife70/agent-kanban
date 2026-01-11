@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 49096)",
+      "Bash(taskkill //F //PID 49096)",
+      "Bash(set:*)",
+      "Bash(node reporter.js:*)",
+      "Bash(curl:*)",
+      "Bash(node -e:*)",
+      "Bash(node claude-hook.js:*)",
+      "Bash(taskkill //F //PID 6008)",
+      "Bash(powershell -Command \"cd ''C:\\\\Users\\\\User\\\\projects\\\\agent-kanban\\\\hooks''; echo ''{\"\"tool_name\"\":\"\"Read\"\",\"\"tool_input\"\":{\"\"file_path\"\":\"\"test.txt\"\"}}'' | node claude-hook.js pretool\")",
+      "Bash(powershell -Command:*)",
+      "Bash(node:*)",
+      "Bash(git init:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: Agent Kanban - Multi-agent monitoring dashboard\n\nFeatures:\n- Kanban board with 5 status columns \\(Idle, Working, Waiting, Completed, Error\\)\n- Real-time WebSocket updates via Socket.io\n- Agent hierarchy tree view for sub-agent visualization\n- Search and filtering capabilities\n- Dark mode support with theme persistence\n- Statistics dashboard\n- Toast notifications\n- Keyboard shortcuts \\(T, S, /, Ctrl+D, Escape\\)\n- Claude Code hooks integration for automatic status reporting\n- Reporter CLI for custom integrations\n\nTech Stack:\n- Frontend: React 18 + TypeScript + Vite + Tailwind CSS + Zustand\n- Backend: Node.js + Express + Socket.io\n- Reporter/Hooks: Node.js + Socket.io-client\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(gh repo create:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
