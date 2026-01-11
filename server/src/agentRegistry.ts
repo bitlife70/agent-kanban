@@ -71,11 +71,17 @@ export class AgentRegistry {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
 
-    // Don't allow status changes for completed or error agents
-    // Once an agent is done, it should stay in that state
+    // Allow restarting from completed/error state when new prompt starts (working status)
+    // This handles the case where a new prompt is submitted in the same terminal
     if (agent.status === 'completed' || agent.status === 'error') {
-      console.log(`[Registry] Ignoring status update for ${agentId}: already in terminal state (${agent.status})`);
-      return agent;
+      if (status === 'working') {
+        // New prompt started - allow restart
+        console.log(`[Registry] Restarting agent ${agentId} from ${agent.status} to ${status} (new prompt)`);
+      } else {
+        // Don't allow other status changes for terminal states
+        console.log(`[Registry] Ignoring status update for ${agentId}: already in terminal state (${agent.status})`);
+        return agent;
+      }
     }
 
     agent.status = status;
