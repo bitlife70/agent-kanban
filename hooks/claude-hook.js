@@ -214,7 +214,17 @@ async function startNewPrompt(sessionId, prompt) {
   // If previous session was completed, clean up old tasks
   if (wasCompleted) {
     log(`Resetting tasks for new prompt (previous session completed)`);
-    // Mark all remaining tasks from previous prompt as done/cleared
+
+    // Mark all existing tasks as done/failed on server before resetting
+    if (state.tasks) {
+      for (const [taskId, task] of Object.entries(state.tasks)) {
+        if (task.status !== 'done' && task.status !== 'failed') {
+          await updateTask(sessionId, taskId, 'done', 'Session completed');
+          log(`Marked task as done: ${taskId}`);
+        }
+      }
+    }
+
     // Reset task tracking for new prompt
     state.tasks = {};
     state.todoTaskMap = {};
@@ -396,11 +406,22 @@ async function processTodoWrite(sessionId, todoData) {
       saveAgentState(sessionId, state);
 
       await createTask(sessionId, taskId, content, todo.activeForm || '', taskStatus);
+      log(`Task created: ${taskId} with status ${taskStatus}`);
     } else {
-      // Update existing task
+      // Update existing task - always send update to server
       const existingTask = state.tasks[taskId];
-      if (existingTask && existingTask.status !== taskStatus) {
+      const existingStatus = existingTask?.status || 'unknown';
+
+      if (existingStatus !== taskStatus) {
         await updateTask(sessionId, taskId, taskStatus);
+        log(`Task updated: ${taskId} from ${existingStatus} to ${taskStatus}`);
+
+        // Update local state
+        if (!state.tasks[taskId]) {
+          state.tasks[taskId] = { title: content, status: taskStatus };
+        } else {
+          state.tasks[taskId].status = taskStatus;
+        }
       }
     }
   }
