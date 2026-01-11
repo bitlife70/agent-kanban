@@ -1,6 +1,7 @@
 import { Agent, AgentStatus, TerminalInfo } from './types';
 
 const HEARTBEAT_TIMEOUT = 30000; // 30 seconds
+const HOOKS_TIMEOUT = 300000; // 5 minutes for hook-based agents
 
 export class AgentRegistry {
   private agents: Map<string, Agent> = new Map();
@@ -129,6 +130,10 @@ export class AgentRegistry {
       clearTimeout(existingTimer);
     }
 
+    // Use longer timeout for hook-based agents (fire-and-forget pattern)
+    const isHookAgent = agentId.startsWith('claude-');
+    const timeout = isHookAgent ? HOOKS_TIMEOUT : HEARTBEAT_TIMEOUT;
+
     // Set new timer
     const timer = setTimeout(() => {
       console.log(`Agent ${agentId} heartbeat timeout, marking as error`);
@@ -136,7 +141,7 @@ export class AgentRegistry {
       if (agent && agent.status !== 'completed') {
         this.updateStatus(agentId, 'error', 'Connection lost (heartbeat timeout)');
       }
-    }, HEARTBEAT_TIMEOUT);
+    }, timeout);
 
     this.heartbeatTimers.set(agentId, timer);
   }
