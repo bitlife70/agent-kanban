@@ -29,7 +29,9 @@ const path = require('path');
 const os = require('os');
 
 const SERVER_URL = process.env.AGENT_KANBAN_SERVER || 'http://localhost:3001';
-const STATE_FILE = path.join(os.tmpdir(), 'agent-kanban-state.json');
+// Use session-specific state file to support multiple concurrent sessions
+const SESSION_ID = process.env.CLAUDE_SESSION_ID || `session-${process.ppid || process.pid}`;
+const STATE_FILE = path.join(os.tmpdir(), `agent-kanban-state-${SESSION_ID}.json`);
 const LOG_FILE = path.join(os.tmpdir(), 'agent-kanban-hook.log');
 
 // Debug logging
@@ -158,6 +160,12 @@ async function updateStatus(status, taskDescription = '') {
     if (!state) return false;
   }
 
+  // Save last task description for reference
+  if (status === 'working' && taskDescription) {
+    state.lastTask = taskDescription;
+    saveAgentState(state);
+  }
+
   const message = {
     type: 'status_update',
     agentId: state.agentId,
@@ -191,6 +199,83 @@ async function deregisterAgent() {
   return success;
 }
 
+// Read tool input from stdin
+async function readStdin() {
+  return new Promise((resolve) => {
+    let data = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('readable', () => {
+      let chunk;
+      while ((chunk = process.stdin.read()) !== null) {
+        data += chunk;
+      }
+    });
+    process.stdin.on('end', () => {
+      try {
+        resolve(JSON.parse(data));
+      } catch {
+        resolve({});
+      }
+    });
+    // Timeout for stdin read
+    setTimeout(() => resolve({}), 100);
+  });
+}
+
+// Extract meaningful task description from tool input
+function getTaskDescription(toolName, toolInput) {
+  if (!toolInput) return `Using ${toolName}`;
+
+  switch (toolName) {
+    case 'Bash':
+      const cmd = toolInput.command || '';
+      if (cmd.length > 50) {
+        return `Running: ${cmd.substring(0, 47)}...`;
+      }
+      return `Running: ${cmd}`;
+
+    case 'Read':
+      const readPath = toolInput.file_path || '';
+      const readFile = path.basename(readPath);
+      return `Reading: ${readFile}`;
+
+    case 'Write':
+      const writePath = toolInput.file_path || '';
+      const writeFile = path.basename(writePath);
+      return `Writing: ${writeFile}`;
+
+    case 'Edit':
+      const editPath = toolInput.file_path || '';
+      const editFile = path.basename(editPath);
+      return `Editing: ${editFile}`;
+
+    case 'Grep':
+      const pattern = toolInput.pattern || '';
+      return `Searching: "${pattern.substring(0, 30)}"`;
+
+    case 'Glob':
+      const globPattern = toolInput.pattern || '';
+      return `Finding: ${globPattern}`;
+
+    case 'Task':
+      const taskDesc = toolInput.description || toolInput.prompt || '';
+      if (taskDesc.length > 40) {
+        return `Sub-agent: ${taskDesc.substring(0, 37)}...`;
+      }
+      return `Sub-agent: ${taskDesc}`;
+
+    case 'WebFetch':
+      return 'Fetching web content...';
+
+    case 'WebSearch':
+      const query = toolInput.query || '';
+      return `Searching: "${query.substring(0, 30)}"`;
+
+    default:
+      return `Using ${toolName}`;
+  }
+}
+
 // Main hook handler
 async function main() {
   const hookType = process.argv[2];
@@ -199,6 +284,13 @@ async function main() {
 
   log(`Hook called: ${hookType}, tool: ${toolName}, server: ${SERVER_URL}`);
 
+  // Read tool input from stdin for pretool/posttool
+  let toolInput = {};
+  if (hookType === 'pretool' || hookType === 'posttool') {
+    toolInput = await readStdin();
+    log(`Tool input: ${JSON.stringify(toolInput).substring(0, 200)}`);
+  }
+
   switch (hookType) {
     case 'start':
     case 'register':
@@ -206,25 +298,16 @@ async function main() {
       break;
 
     case 'pretool':
-      // Tool is about to be used
-      let taskDesc = `Using ${toolName}`;
-      if (toolName === 'Bash') {
-        taskDesc = 'Running command...';
-      } else if (toolName === 'Read') {
-        taskDesc = 'Reading file...';
-      } else if (toolName === 'Write' || toolName === 'Edit') {
-        taskDesc = 'Editing file...';
-      } else if (toolName === 'Grep' || toolName === 'Glob') {
-        taskDesc = 'Searching...';
-      } else if (toolName === 'Task') {
-        taskDesc = 'Spawning sub-agent...';
-      }
+      // Tool is about to be used - extract meaningful description
+      const taskDesc = getTaskDescription(toolName, toolInput);
       await updateStatus('working', taskDesc);
       break;
 
     case 'posttool':
-      // Tool finished
-      await updateStatus('idle', '');
+      // Tool finished - keep last task description
+      const state = getAgentState();
+      const lastTask = state?.lastTask || '';
+      await updateStatus('idle', lastTask);
       break;
 
     case 'notify':
