@@ -30,6 +30,14 @@ const os = require('os');
 
 const SERVER_URL = process.env.AGENT_KANBAN_SERVER || 'http://localhost:3001';
 const STATE_FILE = path.join(os.tmpdir(), 'agent-kanban-state.json');
+const LOG_FILE = path.join(os.tmpdir(), 'agent-kanban-hook.log');
+
+// Debug logging
+function log(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  fs.appendFileSync(LOG_FILE, logMessage);
+}
 
 // Get or create agent ID
 function getAgentState() {
@@ -82,17 +90,20 @@ async function sendMessage(type, payload, timeout = 3000) {
     }, timeout);
 
     socket.on('connect', () => {
+      log(`Connected to server, sending ${type}`);
       socket.emit(type, payload);
 
       // Wait a bit for message to be sent
       setTimeout(() => {
         clearTimeout(timer);
         socket.disconnect();
+        log(`Message sent successfully: ${type}`);
         resolve(true);
       }, 100);
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (err) => {
+      log(`Connection error: ${err.message}`);
       clearTimeout(timer);
       socket.disconnect();
       resolve(false);
@@ -186,6 +197,8 @@ async function main() {
   const toolName = process.env.CLAUDE_TOOL_NAME || '';
   const notificationType = process.env.CLAUDE_NOTIFICATION_TYPE || '';
 
+  log(`Hook called: ${hookType}, tool: ${toolName}, server: ${SERVER_URL}`);
+
   switch (hookType) {
     case 'start':
     case 'register':
@@ -224,8 +237,13 @@ async function main() {
       break;
 
     case 'stop':
+      // Session ending - just mark as completed, don't deregister
+      // Agent will remain visible on the Kanban board
+      await updateStatus('completed', 'Session ended');
+      break;
+
     case 'deregister':
-      // Session ending
+      // Only deregister when explicitly requested
       await updateStatus('completed', 'Session ended');
       setTimeout(() => deregisterAgent(), 1000);
       break;
