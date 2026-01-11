@@ -3,7 +3,7 @@
 ## Project Overview
 여러 터미널에서 동시에 실행되는 Claude 에이전트들을 칸반 보드 형식으로 실시간 모니터링하고 관리할 수 있는 통합 대시보드 도구.
 
-## Current Status: Phase 4 완료 (하이브리드 칸반 보드)
+## Current Status: Phase 5 진행 중 (안정화)
 
 ### Completed Phases
 
@@ -137,12 +137,34 @@ node reporter.js task:done task-1 "Completed successfully"
 
 ---
 
-## Next Steps (Phase 5: 안정화)
+## Phase 5: 안정화 (진행 중 - 2025-01-11)
 
-- [ ] 에러 핸들링 강화
+### 완료된 항목
+
+#### 5-1. 에러 핸들링 강화
+- `server/src/errors.ts` - 중앙화된 에러 코드 및 AppError 클래스
+- `server/src/index.ts` - 글로벌 에러 핸들러, 404 핸들러, Graceful shutdown
+- `frontend/src/stores/agentStore.ts` - 연결 상태 관리 (connecting, connected, disconnected, error)
+- `frontend/src/hooks/useWebSocket.ts` - 재연결 시도 카운트, 에러 상태 관리
+- `frontend/src/components/ConnectionStatus.tsx` - 재연결 시도 표시, 재시도 버튼
+- `frontend/src/components/ErrorBoundary.tsx` - 스택 트레이스 표시, useErrorHandler 훅
+
+#### 5-2. UI 리디자인 (기업형 미니멀 스타일)
+- 강렬한 색상 제거, 그레이스케일 기반 디자인
+- 좌측 보더 액센트 패턴으로 상태 표시
+- 이모지 → 단색 SVG 아이콘으로 교체
+- 그라디언트 헤더 제거, 심플한 섹션 헤더
+- 컴포넌트: AgentCard, TaskCard, KanbanColumn, TaskColumn, HybridKanbanBoard, ToastContainer, ConnectionStatus, ErrorBoundary
+
+#### 5-3. Task 상태 동기화 버그 수정
+- `hooks/claude-hook.js` - processTodoWrite에서 제거된 Todo 감지 및 Task 'failed' 처리
+- `hooks/claude-hook.js` - completeIncompleteTasks 함수 추가 (세션 종료 시 미완료 Task 정리)
+- 'stop'/'deregister' 훅에서 completeIncompleteTasks 호출
+
+### 남은 항목
+
 - [ ] 성능 최적화
 - [ ] 문서화
-- [ ] Claude Code hooks에서 Task 자동 생성 연동 (hooks/claude-hook.js 확장)
 
 ---
 
@@ -191,4 +213,4 @@ node reporter.js task:done task-1 "Completed successfully"
 
 ---
 
-Last Updated: 2025-01-11
+Last Updated: 2026-01-11
