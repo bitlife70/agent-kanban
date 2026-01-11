@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useThemeStore } from './stores/themeStore';
 import { useFilterStore } from './stores/filterStore';
@@ -11,6 +11,7 @@ import { HybridKanbanBoard } from './components/HybridKanbanBoard';
 import { AgentTreeView } from './components/AgentTreeView';
 import { StatsPanel } from './components/StatsPanel';
 import { Agent } from './types/agent';
+import { initAudio } from './utils/notifications';
 
 function AppContent() {
   useWebSocket();
@@ -19,6 +20,28 @@ function AppContent() {
 
   const [showTree, setShowTree] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const audioInitialized = useRef(false);
+
+  // Initialize audio on first user interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      if (!audioInitialized.current) {
+        initAudio();
+        audioInitialized.current = true;
+        // Remove listeners after first interaction
+        document.removeEventListener('click', handleInteraction);
+        document.removeEventListener('keydown', handleInteraction);
+      }
+    };
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
 
   // Apply dark class to html element
   useEffect(() => {

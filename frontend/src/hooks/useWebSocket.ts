@@ -5,6 +5,7 @@ import { useTaskStore } from '../stores/taskStore';
 import { toast } from '../stores/toastStore';
 import { Agent, AgentStatus, STATUS_COLUMNS } from '../types/agent';
 import { Task, TaskStatus, TASK_STATUS_COLUMNS } from '../types/task';
+import { notifyStatusChange } from '../utils/notifications';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
@@ -126,13 +127,26 @@ export function useWebSocket() {
           return;
         }
         console.log('[WebSocket] Agent changed:', data.id, data.status);
+
+        // Check if status actually changed for notifications
+        const currentAgents = useAgentStore.getState().agents;
+        const existingAgent = currentAgents.get(data.id);
+        const statusChanged = !existingAgent || existingAgent.status !== data.status;
+
         updateAgent(data);
 
-        // Show toast for important status changes
-        if (data.status === 'error') {
-          toast.warning(`Agent "${data.name}" encountered an error`);
-        } else if (data.status === 'completed') {
-          toast.success(`Agent "${data.name}" completed`);
+        // Show toast and sound notification for important status changes
+        if (statusChanged) {
+          if (data.status === 'error') {
+            toast.warning(`Agent "${data.name}" encountered an error`);
+            notifyStatusChange(data.name, 'error');
+          } else if (data.status === 'completed') {
+            toast.success(`Agent "${data.name}" completed`);
+            notifyStatusChange(data.name, 'completed');
+          } else if (data.status === 'waiting') {
+            toast.info(`Agent "${data.name}" is waiting for input`);
+            notifyStatusChange(data.name, 'waiting');
+          }
         }
       } catch (error) {
         console.error('[WebSocket] Error handling agent:changed:', error);
