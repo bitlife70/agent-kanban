@@ -137,7 +137,47 @@ node reporter.js task:done task-1 "Completed successfully"
 
 ---
 
-## Phase 5: 안정화 (진행 중 - 2025-01-11)
+## Setup for Other Projects
+
+다른 프로젝트에서 Agent Kanban 모니터링을 활성화하려면:
+
+```bash
+# Windows (해당 프로젝트 폴더에서 실행)
+C:\Users\User\projects\agent-kanban\bin\setup.cmd
+
+# Unix/Mac
+/path/to/agent-kanban/bin/setup.sh
+
+# Non-interactive 모드 (자동 Yes)
+C:\Users\User\projects\agent-kanban\bin\setup.cmd -y
+
+# 브라우저 열지 않음
+C:\Users\User\projects\agent-kanban\bin\setup.cmd -y --no-browser
+
+# 서버 상태 확인
+C:\Users\User\projects\agent-kanban\bin\setup.cmd --status
+```
+
+### Setup 스크립트 동작
+
+1. Agent Kanban 사용 여부 질문 (y/n)
+2. Yes 선택 시:
+   - 서버 실행 여부 확인 → 미실행 시 자동 시작
+   - `.claude/settings.local.json`에 hooks 설정 자동 추가
+   - 대시보드 브라우저에서 열기
+
+### 옵션
+
+| 옵션 | 설명 |
+|------|------|
+| `-y, --yes` | 질문 건너뛰기 (자동 Yes) |
+| `--no-browser` | 브라우저 열지 않음 |
+| `--status` | 서버 상태 확인 |
+| `-h, --help` | 도움말 |
+
+---
+
+## Phase 5: 안정화 (진행 중 - 2026-01-11)
 
 ### 완료된 항목
 
@@ -160,6 +200,18 @@ node reporter.js task:done task-1 "Completed successfully"
 - `hooks/claude-hook.js` - processTodoWrite에서 제거된 Todo 감지 및 Task 'failed' 처리
 - `hooks/claude-hook.js` - completeIncompleteTasks 함수 추가 (세션 종료 시 미완료 Task 정리)
 - 'stop'/'deregister' 훅에서 completeIncompleteTasks 호출
+
+#### 5-4. 음성/소리 알림
+- `frontend/src/utils/notifications.ts` - Web Speech API + Web Audio API 알림
+- Waiting/Completed/Error 상태 변경 시 소리 + 한국어 음성 알림
+- 헤더에 볼륨 조절 UI (Sound/Voice 슬라이더, On/Off 토글)
+- 설정 localStorage에 저장
+
+#### 5-5. Setup 스크립트
+- `bin/agent-kanban-setup.js` - 다른 프로젝트에서 모니터링 활성화
+- `bin/setup.cmd` / `bin/setup.sh` - Windows/Unix 실행 스크립트
+- 서버 자동 시작, hooks 설정 자동 추가, 대시보드 열기
+- 옵션: `-y`, `--no-browser`, `--status`, `-h`
 
 ### 남은 항목
 
