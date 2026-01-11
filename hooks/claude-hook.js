@@ -29,9 +29,6 @@ const path = require('path');
 const os = require('os');
 
 const SERVER_URL = process.env.AGENT_KANBAN_SERVER || 'http://localhost:3001';
-// Use session-specific state file to support multiple concurrent sessions
-const SESSION_ID = process.env.CLAUDE_SESSION_ID || `session-${process.ppid || process.pid}`;
-const STATE_FILE = path.join(os.tmpdir(), `agent-kanban-state-${SESSION_ID}.json`);
 const LOG_FILE = path.join(os.tmpdir(), 'agent-kanban-hook.log');
 
 // Debug logging
@@ -41,11 +38,17 @@ function log(message) {
   fs.appendFileSync(LOG_FILE, logMessage);
 }
 
+// Get state file path for a session
+function getStateFilePath(sessionId) {
+  return path.join(os.tmpdir(), `agent-kanban-state-${sessionId}.json`);
+}
+
 // Get or create agent ID
-function getAgentState() {
+function getAgentState(sessionId) {
+  const stateFile = getStateFilePath(sessionId);
   try {
-    if (fs.existsSync(STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+    if (fs.existsSync(stateFile)) {
+      return JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
     }
   } catch (e) {
     // Ignore
@@ -53,13 +56,15 @@ function getAgentState() {
   return null;
 }
 
-function saveAgentState(state) {
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+function saveAgentState(sessionId, state) {
+  const stateFile = getStateFilePath(sessionId);
+  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
 }
 
-function clearAgentState() {
+function clearAgentState(sessionId) {
+  const stateFile = getStateFilePath(sessionId);
   try {
-    fs.unlinkSync(STATE_FILE);
+    fs.unlinkSync(stateFile);
   } catch (e) {
     // Ignore
   }
@@ -124,8 +129,7 @@ async function sendMessage(type, payload, timeout = 3000) {
 }
 
 // Register new agent
-async function registerAgent(prompt) {
-  const sessionId = process.env.CLAUDE_SESSION_ID || `session-${Date.now()}`;
+async function registerAgent(sessionId, prompt) {
   const agentId = `claude-session-${sessionId}`;
   const name = getAgentName(prompt);
 
@@ -154,21 +158,21 @@ async function registerAgent(prompt) {
 
   const success = await sendMessage('agent:register', message);
   if (success) {
-    saveAgentState(state);
+    saveAgentState(sessionId, state);
     log(`Registered agent: ${agentId} - ${name}`);
   }
   return success;
 }
 
 // Update agent name (when we receive the prompt)
-async function updateAgentName(prompt) {
-  let state = getAgentState();
+async function updateAgentName(sessionId, prompt) {
+  let state = getAgentState(sessionId);
   if (!state) return false;
 
   const name = getAgentName(prompt);
   state.name = name;
   state.prompt = prompt;
-  saveAgentState(state);
+  saveAgentState(sessionId, state);
 
   const message = {
     type: 'status_update',
@@ -185,20 +189,20 @@ async function updateAgentName(prompt) {
 }
 
 // Update agent status
-async function updateStatus(status, taskDescription = '') {
-  let state = getAgentState();
+async function updateStatus(sessionId, status, taskDescription = '') {
+  let state = getAgentState(sessionId);
 
   // Auto-register if not registered
   if (!state) {
-    await registerAgent();
-    state = getAgentState();
+    await registerAgent(sessionId);
+    state = getAgentState(sessionId);
     if (!state) return false;
   }
 
   // Save last task description for reference
   if (status === 'working' && taskDescription) {
     state.lastTask = taskDescription;
-    saveAgentState(state);
+    saveAgentState(sessionId, state);
   }
 
   const message = {
@@ -215,8 +219,8 @@ async function updateStatus(status, taskDescription = '') {
 }
 
 // Deregister agent
-async function deregisterAgent() {
-  const state = getAgentState();
+async function deregisterAgent(sessionId) {
+  const state = getAgentState(sessionId);
   if (!state) return false;
 
   const message = {
@@ -228,8 +232,8 @@ async function deregisterAgent() {
 
   const success = await sendMessage('agent:deregister', message);
   if (success) {
-    clearAgentState();
-    console.log(`[Agent Kanban] Deregistered: ${state.name}`);
+    clearAgentState(sessionId);
+    log(`Deregistered: ${state.name}`);
   }
   return success;
 }
@@ -326,77 +330,81 @@ async function main() {
     log(`Stdin data: ${JSON.stringify(stdinData).substring(0, 200)}`);
   }
 
+  // Extract session ID from stdin or environment
+  const sessionId = stdinData.session_id || process.env.CLAUDE_SESSION_ID || `fallback-${process.pid}`;
+  log(`Session ID: ${sessionId}`);
+
   switch (hookType) {
     case 'start':
     case 'register':
-      await registerAgent();
+      await registerAgent(sessionId);
       break;
 
     case 'userprompt':
       // User submitted a prompt - register with prompt as name
       const prompt = stdinData.prompt || stdinData.message || '';
-      const existingState = getAgentState();
+      const existingState = getAgentState(sessionId);
       if (existingState) {
         // Update existing agent name
-        await updateAgentName(prompt);
+        await updateAgentName(sessionId, prompt);
       } else {
         // Register new agent with prompt
-        await registerAgent(prompt);
+        await registerAgent(sessionId, prompt);
       }
       break;
 
     case 'pretool':
       // Tool is about to be used - extract meaningful description
       const taskDesc = getTaskDescription(toolName, stdinData);
-      await updateStatus('working', taskDesc);
+      await updateStatus(sessionId, 'working', taskDesc);
       break;
 
     case 'posttool':
       // Tool finished - keep last task description
-      const state = getAgentState();
+      const state = getAgentState(sessionId);
       const lastTask = state?.lastTask || '';
-      await updateStatus('idle', lastTask);
+      await updateStatus(sessionId, 'idle', lastTask);
       break;
 
     case 'notify':
       // Notification received
       if (notificationType === 'user_input_request') {
-        await updateStatus('waiting', 'Waiting for user input');
+        await updateStatus(sessionId, 'waiting', 'Waiting for user input');
       } else if (notificationType === 'error') {
-        await updateStatus('error', 'Error occurred');
+        await updateStatus(sessionId, 'error', 'Error occurred');
       }
       break;
 
     case 'stop':
       // Session ending - just mark as completed, don't deregister
       // Agent will remain visible on the Kanban board
-      await updateStatus('completed', 'Session ended');
+      await updateStatus(sessionId, 'completed', 'Session ended');
       break;
 
     case 'deregister':
       // Only deregister when explicitly requested
-      await updateStatus('completed', 'Session ended');
-      setTimeout(() => deregisterAgent(), 1000);
+      await updateStatus(sessionId, 'completed', 'Session ended');
+      setTimeout(() => deregisterAgent(sessionId), 1000);
       break;
 
     case 'working':
-      await updateStatus('working', process.argv[3] || 'Working...');
+      await updateStatus(sessionId, 'working', process.argv[3] || 'Working...');
       break;
 
     case 'waiting':
-      await updateStatus('waiting', process.argv[3] || 'Waiting...');
+      await updateStatus(sessionId, 'waiting', process.argv[3] || 'Waiting...');
       break;
 
     case 'idle':
-      await updateStatus('idle', '');
+      await updateStatus(sessionId, 'idle', '');
       break;
 
     case 'completed':
-      await updateStatus('completed', process.argv[3] || 'Completed');
+      await updateStatus(sessionId, 'completed', process.argv[3] || 'Completed');
       break;
 
     case 'error':
-      await updateStatus('error', process.argv[3] || 'Error');
+      await updateStatus(sessionId, 'error', process.argv[3] || 'Error');
       break;
 
     default:
