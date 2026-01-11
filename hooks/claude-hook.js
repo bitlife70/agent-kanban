@@ -308,6 +308,21 @@ async function processTodoWrite(sessionId, todoData) {
   if (!state.todoTaskMap) state.todoTaskMap = {};
   if (!state.tasks) state.tasks = {};
 
+  // Track which todos are currently in the list
+  const currentTodoContents = new Set(todos.map(t => t.content || ''));
+
+  // Check for removed todos and mark their tasks as failed
+  for (const [content, taskId] of Object.entries(state.todoTaskMap)) {
+    if (!currentTodoContents.has(content)) {
+      const existingTask = state.tasks[taskId];
+      // Only mark as failed if task is not already completed
+      if (existingTask && existingTask.status !== 'done' && existingTask.status !== 'failed') {
+        await updateTask(sessionId, taskId, 'failed', 'Task removed from todo list');
+        log(`Task removed from todo list: ${taskId}`);
+      }
+    }
+  }
+
   for (let i = 0; i < todos.length; i++) {
     const todo = todos[i];
     const content = todo.content || '';
@@ -339,6 +354,19 @@ async function processTodoWrite(sessionId, todoData) {
   }
 
   saveAgentState(sessionId, state);
+}
+
+// Complete all incomplete tasks when session ends
+async function completeIncompleteTasks(sessionId) {
+  const state = getAgentState(sessionId);
+  if (!state || !state.tasks) return;
+
+  for (const [taskId, task] of Object.entries(state.tasks)) {
+    if (task.status === 'todo' || task.status === 'doing') {
+      await updateTask(sessionId, taskId, 'failed', 'Session ended - task incomplete');
+      log(`Marked incomplete task as failed: ${taskId}`);
+    }
+  }
 }
 
 // Process Task tool to create sub-agent task
@@ -517,13 +545,15 @@ async function main() {
       break;
 
     case 'stop':
-      // Session ending - just mark as completed, don't deregister
-      // Agent will remain visible on the Kanban board
+      // Session ending - mark incomplete tasks as failed first
+      await completeIncompleteTasks(sessionId);
+      // Then mark agent as completed
       await updateStatus(sessionId, 'completed', 'Session ended');
       break;
 
     case 'deregister':
       // Only deregister when explicitly requested
+      await completeIncompleteTasks(sessionId);
       await updateStatus(sessionId, 'completed', 'Session ended');
       setTimeout(() => deregisterAgent(sessionId), 1000);
       break;
