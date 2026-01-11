@@ -89,8 +89,9 @@ agentNsp.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[Agent] Reporter disconnected: ${socket.id}`);
-    // Mark as error if not properly deregistered
-    if (registeredAgentId) {
+    // Don't mark hook-based agents as error on disconnect (fire-and-forget pattern)
+    // Only mark persistent connections as error
+    if (registeredAgentId && !registeredAgentId.startsWith('claude-')) {
       const agent = agentRegistry.getAgent(registeredAgentId);
       if (agent && agent.status !== 'completed') {
         agentRegistry.updateStatus(
