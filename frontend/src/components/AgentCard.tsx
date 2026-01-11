@@ -75,6 +75,15 @@ function AgentCardComponent({ agent, onClick }: AgentCardProps) {
         </span>
       </div>
 
+      {agent.prompt && (
+        <div className="mb-2 bg-blue-50/50 dark:bg-blue-900/20 rounded px-2 py-1 border-l-2 border-blue-400 dark:border-blue-600">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Prompt:</p>
+          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2" title={agent.prompt}>
+            {agent.prompt}
+          </p>
+        </div>
+      )}
+
       {agent.taskDescription && (
         <p className="text-sm text-gray-700 dark:text-gray-200 mb-2 line-clamp-2 bg-white/30 dark:bg-black/20 rounded px-2 py-1" title={agent.taskDescription}>
           {agent.taskDescription}
@@ -128,6 +137,7 @@ export const AgentCard = memo(AgentCardComponent, (prevProps, nextProps) => {
   return (
     prev.id === next.id &&
     prev.status === next.status &&
+    prev.prompt === next.prompt &&
     prev.taskDescription === next.taskDescription &&
     prev.lastActivity === next.lastActivity &&
     prev.children.length === next.children.length

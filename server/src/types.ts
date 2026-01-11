@@ -9,6 +9,7 @@ export interface TerminalInfo {
 export interface Agent {
   id: string;
   name: string;
+  prompt?: string;
   status: AgentStatus;
   taskDescription: string;
   startTime: number;
@@ -25,6 +26,7 @@ export interface AgentMessage {
   timestamp: number;
   payload: {
     name?: string;
+    prompt?: string;
     status?: AgentStatus;
     taskDescription?: string;
     progress?: number;

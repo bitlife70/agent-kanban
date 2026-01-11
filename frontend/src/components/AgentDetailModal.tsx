@@ -121,6 +121,16 @@ export function AgentDetailModal({ agent: initialAgent, onClose }: AgentDetailMo
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[60vh]">
+          {/* Prompt */}
+          {agent.prompt && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Prompt</h3>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-3">
+                <p className="text-gray-700 dark:text-gray-200">{agent.prompt}</p>
+              </div>
+            </div>
+          )}
+
           {/* Status */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Status</h3>

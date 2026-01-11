@@ -21,13 +21,15 @@ export class AgentRegistry {
     agentId: string,
     name: string,
     parentAgentId?: string,
-    terminalInfo?: TerminalInfo
+    terminalInfo?: TerminalInfo,
+    prompt?: string
   ): Agent {
     const now = Date.now();
 
     const agent: Agent = {
       id: agentId,
       name: name || `Agent-${agentId.slice(0, 8)}`,
+      prompt: prompt || '',
       status: 'idle',
       taskDescription: '',
       startTime: now,
@@ -72,11 +74,26 @@ export class AgentRegistry {
     return agent;
   }
 
-  updateName(agentId: string, name: string): Agent | null {
+  updateName(agentId: string, name: string, prompt?: string): Agent | null {
     const agent = this.agents.get(agentId);
     if (!agent) return null;
 
     agent.name = name;
+    if (prompt !== undefined) {
+      agent.prompt = prompt;
+    }
+    agent.lastActivity = Date.now();
+
+    this.resetHeartbeatTimer(agentId);
+    this.onAgentChange?.(agent);
+    return agent;
+  }
+
+  updatePrompt(agentId: string, prompt: string): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    agent.prompt = prompt;
     agent.lastActivity = Date.now();
 
     this.resetHeartbeatTimer(agentId);

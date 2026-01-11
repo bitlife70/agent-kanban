@@ -60,7 +60,8 @@ agentNsp.on('connection', (socket) => {
       message.agentId,
       message.payload.name || '',
       message.parentAgentId,
-      message.payload.terminalInfo
+      message.payload.terminalInfo,
+      message.payload.prompt
     );
     registeredAgentId = agent.id;
     socket.emit('registered', { agentId: agent.id });
@@ -69,9 +70,11 @@ agentNsp.on('connection', (socket) => {
   socket.on('agent:update', (message: AgentMessage) => {
     console.log(`[Agent] Status update:`, message.agentId, message.payload.status);
 
-    // Update agent name if provided
+    // Update agent name and prompt if provided
     if (message.payload.name) {
-      agentRegistry.updateName(message.agentId, message.payload.name);
+      agentRegistry.updateName(message.agentId, message.payload.name, message.payload.prompt);
+    } else if (message.payload.prompt) {
+      agentRegistry.updatePrompt(message.agentId, message.payload.prompt);
     }
 
     if (message.payload.status) {

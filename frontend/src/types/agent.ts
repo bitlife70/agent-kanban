@@ -9,6 +9,7 @@ export interface TerminalInfo {
 export interface Agent {
   id: string;
   name: string;
+  prompt?: string;
   status: AgentStatus;
   taskDescription: string;
   startTime: number;

@@ -147,6 +147,7 @@ async function registerAgent(sessionId, prompt) {
     timestamp: Date.now(),
     payload: {
       name,
+      prompt: prompt || '',
       status: 'idle',
       terminalInfo: {
         pid: process.ppid || process.pid,
@@ -180,6 +181,7 @@ async function updateAgentName(sessionId, prompt) {
     timestamp: Date.now(),
     payload: {
       name,
+      prompt: prompt || '',
       status: 'working',
       taskDescription: 'Processing prompt...'
     }
@@ -256,8 +258,8 @@ async function readStdin() {
         resolve({});
       }
     });
-    // Timeout for stdin read
-    setTimeout(() => resolve({}), 100);
+    // Timeout for stdin read (increased for all hook types)
+    setTimeout(() => resolve({}), 500);
   });
 }
 
@@ -318,17 +320,18 @@ function getTaskDescription(toolName, toolInput) {
 // Main hook handler
 async function main() {
   const hookType = process.argv[2];
-  const toolName = process.env.CLAUDE_TOOL_NAME || '';
   const notificationType = process.env.CLAUDE_NOTIFICATION_TYPE || '';
 
-  log(`Hook called: ${hookType}, tool: ${toolName}, server: ${SERVER_URL}`);
-
-  // Read input from stdin
+  // Read input from stdin for ALL hook types
   let stdinData = {};
-  if (hookType === 'pretool' || hookType === 'posttool' || hookType === 'userprompt') {
-    stdinData = await readStdin();
-    log(`Stdin data: ${JSON.stringify(stdinData).substring(0, 200)}`);
-  }
+  stdinData = await readStdin();
+
+  // Get tool name from stdin data or environment variable
+  const toolName = stdinData.tool_name || process.env.CLAUDE_TOOL_NAME || '';
+
+  log(`Hook called: ${hookType}, tool: ${toolName}, server: ${SERVER_URL}`);
+  log(`Stdin data keys: ${Object.keys(stdinData).join(', ')}`);
+  log(`Stdin data: ${JSON.stringify(stdinData).substring(0, 500)}`);
 
   // Extract session ID from stdin or environment
   const sessionId = stdinData.session_id || process.env.CLAUDE_SESSION_ID || `fallback-${process.pid}`;
@@ -355,7 +358,10 @@ async function main() {
 
     case 'pretool':
       // Tool is about to be used - extract meaningful description
-      const taskDesc = getTaskDescription(toolName, stdinData);
+      // Tool input might be in stdinData.tool_input or directly in stdinData
+      const toolInput = stdinData.tool_input || stdinData;
+      const taskDesc = getTaskDescription(toolName, toolInput);
+      log(`PreTool: toolName=${toolName}, taskDesc=${taskDesc}`);
       await updateStatus(sessionId, 'working', taskDesc);
       break;
 
@@ -368,10 +374,18 @@ async function main() {
 
     case 'notify':
       // Notification received
-      if (notificationType === 'user_input_request') {
+      // Get notification type from stdin or environment
+      const notifyType = stdinData.type || notificationType;
+      const notifyMessage = stdinData.message || stdinData.title || '';
+      log(`Notify: type=${notifyType}, message=${notifyMessage}`);
+
+      if (notifyType === 'user_input_request' || notifyMessage.includes('waiting') || notifyMessage.includes('input')) {
         await updateStatus(sessionId, 'waiting', 'Waiting for user input');
-      } else if (notificationType === 'error') {
+      } else if (notifyType === 'error') {
         await updateStatus(sessionId, 'error', 'Error occurred');
+      } else {
+        // Default to waiting for any notification that requires user attention
+        await updateStatus(sessionId, 'waiting', notifyMessage || 'Notification received');
       }
       break;
 
