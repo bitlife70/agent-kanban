@@ -6,13 +6,13 @@ import { KanbanColumn } from './KanbanColumn';
 import { AgentDetailModal } from './AgentDetailModal';
 
 export function KanbanBoard() {
-  const getAllAgents = useAgentStore(state => state.getAllAgents);
+  const agents = useAgentStore(state => state.agents);
   const { searchQuery, activeFilters } = useFilterStore();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   // Filter agents based on search and status filters
   const filteredAgentsByStatus = useMemo(() => {
-    const allAgents = getAllAgents();
+    const allAgents = Array.from(agents.values());
 
     // Apply search filter
     let filtered = allAgents;
@@ -40,7 +40,7 @@ export function KanbanBoard() {
     });
 
     return grouped;
-  }, [getAllAgents, searchQuery]);
+  }, [agents, searchQuery]);
 
   // Determine which columns to show based on filters
   const visibleColumns = activeFilters.length > 0 ? activeFilters : STATUS_COLUMNS;
