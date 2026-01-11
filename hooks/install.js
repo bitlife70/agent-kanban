@@ -53,7 +53,7 @@ function createHooksConfig(hookPath) {
   return {
     PreToolUse: [
       {
-        matcher: {},
+        matcher: '',
         hooks: [
           {
             type: 'command',
@@ -64,7 +64,7 @@ function createHooksConfig(hookPath) {
     ],
     PostToolUse: [
       {
-        matcher: {},
+        matcher: '',
         hooks: [
           {
             type: 'command',
@@ -75,7 +75,7 @@ function createHooksConfig(hookPath) {
     ],
     Notification: [
       {
-        matcher: {},
+        matcher: '',
         hooks: [
           {
             type: 'command',
@@ -86,7 +86,7 @@ function createHooksConfig(hookPath) {
     ],
     Stop: [
       {
-        matcher: {},
+        matcher: '',
         hooks: [
           {
             type: 'command',

@@ -67,7 +67,7 @@ Add to your `.claude/settings.json`:
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": {},
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -78,7 +78,7 @@ Add to your `.claude/settings.json`:
     ],
     "PostToolUse": [
       {
-        "matcher": {},
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -89,7 +89,7 @@ Add to your `.claude/settings.json`:
     ],
     "Notification": [
       {
-        "matcher": {},
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -100,7 +100,7 @@ Add to your `.claude/settings.json`:
     ],
     "Stop": [
       {
-        "matcher": {},
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
