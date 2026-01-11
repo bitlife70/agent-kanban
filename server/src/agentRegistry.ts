@@ -72,6 +72,18 @@ export class AgentRegistry {
     return agent;
   }
 
+  updateName(agentId: string, name: string): Agent | null {
+    const agent = this.agents.get(agentId);
+    if (!agent) return null;
+
+    agent.name = name;
+    agent.lastActivity = Date.now();
+
+    this.resetHeartbeatTimer(agentId);
+    this.onAgentChange?.(agent);
+    return agent;
+  }
+
   heartbeat(agentId: string): boolean {
     const agent = this.agents.get(agentId);
     if (!agent) return false;

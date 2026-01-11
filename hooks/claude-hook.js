@@ -65,8 +65,18 @@ function clearAgentState() {
   }
 }
 
-// Create agent name from session or directory
-function getAgentName() {
+// Create agent name from prompt or directory
+function getAgentName(prompt) {
+  // If we have a prompt, use the first part as the name
+  if (prompt && prompt.trim()) {
+    const cleanPrompt = prompt.trim().replace(/\s+/g, ' ');
+    if (cleanPrompt.length > 40) {
+      return cleanPrompt.substring(0, 37) + '...';
+    }
+    return cleanPrompt;
+  }
+
+  // Fallback to directory + session ID
   const sessionId = process.env.CLAUDE_SESSION_ID;
   const cwd = process.env.CLAUDE_WORKING_DIRECTORY || process.cwd();
   const dirName = path.basename(cwd);
@@ -114,15 +124,16 @@ async function sendMessage(type, payload, timeout = 3000) {
 }
 
 // Register new agent
-async function registerAgent() {
+async function registerAgent(prompt) {
   const sessionId = process.env.CLAUDE_SESSION_ID || `session-${Date.now()}`;
-  const agentId = `claude-${sessionId}`;
-  const name = getAgentName();
+  const agentId = `claude-session-${sessionId}`;
+  const name = getAgentName(prompt);
 
   const state = {
     agentId,
     name,
     sessionId,
+    prompt: prompt || '',
     registeredAt: Date.now()
   };
 
@@ -144,9 +155,33 @@ async function registerAgent() {
   const success = await sendMessage('agent:register', message);
   if (success) {
     saveAgentState(state);
-    console.log(`[Agent Kanban] Registered: ${name}`);
+    log(`Registered agent: ${agentId} - ${name}`);
   }
   return success;
+}
+
+// Update agent name (when we receive the prompt)
+async function updateAgentName(prompt) {
+  let state = getAgentState();
+  if (!state) return false;
+
+  const name = getAgentName(prompt);
+  state.name = name;
+  state.prompt = prompt;
+  saveAgentState(state);
+
+  const message = {
+    type: 'status_update',
+    agentId: state.agentId,
+    timestamp: Date.now(),
+    payload: {
+      name,
+      status: 'working',
+      taskDescription: 'Processing prompt...'
+    }
+  };
+
+  return sendMessage('agent:update', message);
 }
 
 // Update agent status
@@ -284,11 +319,11 @@ async function main() {
 
   log(`Hook called: ${hookType}, tool: ${toolName}, server: ${SERVER_URL}`);
 
-  // Read tool input from stdin for pretool/posttool
-  let toolInput = {};
-  if (hookType === 'pretool' || hookType === 'posttool') {
-    toolInput = await readStdin();
-    log(`Tool input: ${JSON.stringify(toolInput).substring(0, 200)}`);
+  // Read input from stdin
+  let stdinData = {};
+  if (hookType === 'pretool' || hookType === 'posttool' || hookType === 'userprompt') {
+    stdinData = await readStdin();
+    log(`Stdin data: ${JSON.stringify(stdinData).substring(0, 200)}`);
   }
 
   switch (hookType) {
@@ -297,9 +332,22 @@ async function main() {
       await registerAgent();
       break;
 
+    case 'userprompt':
+      // User submitted a prompt - register with prompt as name
+      const prompt = stdinData.prompt || stdinData.message || '';
+      const existingState = getAgentState();
+      if (existingState) {
+        // Update existing agent name
+        await updateAgentName(prompt);
+      } else {
+        // Register new agent with prompt
+        await registerAgent(prompt);
+      }
+      break;
+
     case 'pretool':
       // Tool is about to be used - extract meaningful description
-      const taskDesc = getTaskDescription(toolName, toolInput);
+      const taskDesc = getTaskDescription(toolName, stdinData);
       await updateStatus('working', taskDesc);
       break;
 

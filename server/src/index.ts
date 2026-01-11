@@ -68,6 +68,12 @@ agentNsp.on('connection', (socket) => {
 
   socket.on('agent:update', (message: AgentMessage) => {
     console.log(`[Agent] Status update:`, message.agentId, message.payload.status);
+
+    // Update agent name if provided
+    if (message.payload.name) {
+      agentRegistry.updateName(message.agentId, message.payload.name);
+    }
+
     if (message.payload.status) {
       agentRegistry.updateStatus(
         message.agentId,
