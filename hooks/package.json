@@ -1,0 +1,17 @@
+{
+  "name": "agent-kanban-hooks",
+  "version": "1.0.0",
+  "description": "Claude Code hooks for Agent Kanban",
+  "main": "claude-hook.js",
+  "bin": {
+    "agent-kanban-hook": "./claude-hook.js",
+    "agent-kanban-install": "./install.js"
+  },
+  "scripts": {
+    "install-hooks": "node install.js",
+    "uninstall-hooks": "node install.js uninstall"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.2"
+  }
+}

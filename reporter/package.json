@@ -1,0 +1,16 @@
+{
+  "name": "agent-kanban-reporter",
+  "version": "1.0.0",
+  "description": "Reporter client for Agent Kanban",
+  "main": "reporter.js",
+  "bin": {
+    "agent-reporter": "./reporter.js"
+  },
+  "scripts": {
+    "start": "node reporter.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.2",
+    "uuid": "^9.0.0"
+  }
+}

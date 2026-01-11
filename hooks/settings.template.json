@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/settings.schema.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "command": "node {{HOOK_PATH}} pretool"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "command": "node {{HOOK_PATH}} posttool"
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "command": "node {{HOOK_PATH}} notify"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "node {{HOOK_PATH}} stop"
+      }
+    ]
+  }
+}
