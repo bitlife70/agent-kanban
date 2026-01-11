@@ -23,28 +23,30 @@ export const TASK_STATUS_COLUMNS: TaskStatus[] = ['todo', 'doing', 'done', 'fail
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
-  doing: 'Doing',
+  doing: 'In Progress',
   done: 'Done',
   failed: 'Failed'
 };
 
+// Simplified corporate colors
 export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
-  todo: 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600',
-  doing: 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700',
-  done: 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700',
-  failed: 'bg-red-100 dark:bg-red-900/50 border-red-300 dark:border-red-700'
+  todo: 'bg-white dark:bg-gray-800 border-l-4 border-l-gray-400 border-y border-r border-gray-200 dark:border-gray-700',
+  doing: 'bg-white dark:bg-gray-800 border-l-4 border-l-blue-500 border-y border-r border-gray-200 dark:border-gray-700',
+  done: 'bg-white dark:bg-gray-800 border-l-4 border-l-emerald-500 border-y border-r border-gray-200 dark:border-gray-700',
+  failed: 'bg-white dark:bg-gray-800 border-l-4 border-l-red-500 border-y border-r border-gray-200 dark:border-gray-700'
 };
 
 export const TASK_STATUS_HEADER_COLORS: Record<TaskStatus, string> = {
-  todo: 'bg-gray-500',
-  doing: 'bg-blue-500',
-  done: 'bg-green-500',
-  failed: 'bg-red-500'
+  todo: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  doing: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  done: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  failed: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 };
 
-export const TASK_STATUS_ICONS: Record<TaskStatus, string> = {
-  todo: 'clipboard-list',
-  doing: 'play-circle',
-  done: 'check-circle',
-  failed: 'x-circle'
+// Status dot colors
+export const TASK_STATUS_DOT_COLORS: Record<TaskStatus, string> = {
+  todo: 'bg-gray-400',
+  doing: 'bg-blue-500',
+  done: 'bg-emerald-500',
+  failed: 'bg-red-500'
 };

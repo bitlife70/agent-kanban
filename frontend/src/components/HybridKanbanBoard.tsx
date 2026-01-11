@@ -20,7 +20,6 @@ export function HybridKanbanBoard() {
   const [viewMode, setViewMode] = useState<ViewMode>('hybrid');
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string | null>(null);
 
-  // Filter agents based on search
   const filteredAgentsByStatus = useMemo(() => {
     const allAgents = Array.from(agents.values());
 
@@ -50,16 +49,13 @@ export function HybridKanbanBoard() {
     return grouped;
   }, [agents, searchQuery]);
 
-  // Filter tasks based on search and agent filter
   const filteredTasksByStatus = useMemo(() => {
     let allTasks = Array.from(tasks.values());
 
-    // Apply agent filter
     if (selectedAgentFilter) {
       allTasks = allTasks.filter(task => task.agentId === selectedAgentFilter);
     }
 
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       allTasks = allTasks.filter(task =>
@@ -69,7 +65,6 @@ export function HybridKanbanBoard() {
       );
     }
 
-    // Sort by startTime
     allTasks.sort((a, b) => b.startTime - a.startTime);
 
     const grouped: Record<TaskStatus, Task[]> = {
@@ -98,35 +93,35 @@ export function HybridKanbanBoard() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* View Mode Toggle & Agent Filter */}
-      <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 dark:text-gray-400">View:</span>
-          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+      {/* Header Controls */}
+      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 dark:text-gray-400">View</span>
+          <div className="flex rounded border border-gray-300 dark:border-gray-600">
             <button
               onClick={() => setViewMode('hybrid')}
-              className={`px-3 py-1 text-sm ${viewMode === 'hybrid'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === 'hybrid'
+                ? 'bg-gray-800 dark:bg-gray-600 text-white'
+                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               Hybrid
             </button>
             <button
               onClick={() => setViewMode('sessions')}
-              className={`px-3 py-1 text-sm border-l border-gray-300 dark:border-gray-600 ${viewMode === 'sessions'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              className={`px-3 py-1.5 text-sm font-medium border-l border-gray-300 dark:border-gray-600 transition-colors ${viewMode === 'sessions'
+                ? 'bg-gray-800 dark:bg-gray-600 text-white'
+                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               Sessions
             </button>
             <button
               onClick={() => setViewMode('tasks')}
-              className={`px-3 py-1 text-sm border-l border-gray-300 dark:border-gray-600 ${viewMode === 'tasks'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+              className={`px-3 py-1.5 text-sm font-medium border-l border-gray-300 dark:border-gray-600 transition-colors ${viewMode === 'tasks'
+                ? 'bg-gray-800 dark:bg-gray-600 text-white'
+                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               Tasks
@@ -134,16 +129,16 @@ export function HybridKanbanBoard() {
           </div>
         </div>
 
-        {/* Agent Filter for Tasks */}
+        {/* Agent Filter */}
         {(viewMode === 'hybrid' || viewMode === 'tasks') && allAgents.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Filter by session:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Session</span>
             <select
               value={selectedAgentFilter || ''}
               onChange={(e) => setSelectedAgentFilter(e.target.value || null)}
-              className="px-2 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+              className="px-2 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
-              <option value="">All sessions</option>
+              <option value="">All</option>
               {allAgents.map(agent => (
                 <option key={agent.id} value={agent.id}>
                   {agent.name}
@@ -154,16 +149,16 @@ export function HybridKanbanBoard() {
         )}
       </div>
 
-      {/* Content Area */}
+      {/* Content */}
       <div className="flex-1 overflow-hidden">
         {viewMode === 'hybrid' ? (
           <div className="flex flex-col h-full">
             {/* Sessions Section */}
-            <div className="h-[45%] border-b border-gray-300 dark:border-gray-600 overflow-hidden">
-              <div className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white font-semibold text-sm">
-                Sessions (Agents)
+            <div className="h-[45%] border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Sessions</h2>
               </div>
-              <div className="flex gap-4 p-4 h-[calc(100%-36px)] overflow-x-auto">
+              <div className="flex gap-3 p-4 h-[calc(100%-37px)] overflow-x-auto bg-gray-50 dark:bg-gray-900">
                 {visibleAgentColumns.map(status => (
                   <KanbanColumn
                     key={status}
@@ -177,10 +172,10 @@ export function HybridKanbanBoard() {
 
             {/* Tasks Section */}
             <div className="h-[55%] overflow-hidden">
-              <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold text-sm">
-                Tasks
+              <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">Tasks</h2>
               </div>
-              <div className="flex gap-3 p-4 h-[calc(100%-36px)] overflow-x-auto">
+              <div className="flex gap-3 p-4 h-[calc(100%-37px)] overflow-x-auto bg-gray-50 dark:bg-gray-900">
                 {TASK_STATUS_COLUMNS.map(status => (
                   <TaskColumn
                     key={status}
@@ -193,7 +188,7 @@ export function HybridKanbanBoard() {
             </div>
           </div>
         ) : viewMode === 'sessions' ? (
-          <div className="flex gap-4 p-6 h-full overflow-x-auto">
+          <div className="flex gap-4 p-4 h-full overflow-x-auto">
             {visibleAgentColumns.map(status => (
               <KanbanColumn
                 key={status}
@@ -204,7 +199,7 @@ export function HybridKanbanBoard() {
             ))}
           </div>
         ) : (
-          <div className="flex gap-3 p-6 h-full overflow-x-auto">
+          <div className="flex gap-3 p-4 h-full overflow-x-auto">
             {TASK_STATUS_COLUMNS.map(status => (
               <TaskColumn
                 key={status}

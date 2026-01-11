@@ -6,37 +6,33 @@ function getStatusConfig(state: ConnectionState, attempts: number) {
   switch (state) {
     case 'connecting':
       return {
-        title: 'Connecting to Server',
-        message: 'Establishing connection...',
+        title: 'Connecting',
+        message: 'Establishing connection to server...',
         showSpinner: true,
-        showRetry: false,
-        bgColor: 'bg-blue-500'
+        showRetry: false
       };
     case 'disconnected':
       return {
-        title: 'Reconnecting...',
+        title: 'Reconnecting',
         message: attempts > 0
-          ? `Attempting to reconnect (${attempts} ${attempts === 1 ? 'attempt' : 'attempts'})...`
-          : 'Connection lost. Reconnecting...',
+          ? `Attempt ${attempts}...`
+          : 'Connection lost',
         showSpinner: true,
-        showRetry: attempts >= 3,
-        bgColor: 'bg-yellow-500'
+        showRetry: attempts >= 3
       };
     case 'error':
       return {
-        title: 'Connection Error',
-        message: 'Unable to connect to the server.',
+        title: 'Connection Failed',
+        message: 'Unable to connect to server',
         showSpinner: false,
-        showRetry: true,
-        bgColor: 'bg-red-500'
+        showRetry: true
       };
     default:
       return {
-        title: 'Connecting...',
+        title: 'Connecting',
         message: '',
         showSpinner: true,
-        showRetry: false,
-        bgColor: 'bg-gray-500'
+        showRetry: false
       };
   }
 }
@@ -46,121 +42,80 @@ export function ConnectionStatus() {
   const reconnectAttempts = useAgentStore(state => state.reconnectAttempts);
   const lastError = useAgentStore(state => state.lastError);
 
-  // Don't show when connected
   if (connectionState === 'connected') return null;
 
   const config = getStatusConfig(connectionState, reconnectAttempts);
 
   const handleRetry = () => {
-    // Reload the page to reinitialize WebSocket connection
     window.location.reload();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[90]">
-      <div className="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center border border-gray-700">
-        {/* Status Icon */}
-        <div className="relative w-20 h-20 mx-auto mb-6">
+    <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-[90]">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-sm w-full mx-4 border border-gray-200 dark:border-gray-700">
+        {/* Spinner or Icon */}
+        <div className="flex justify-center mb-4">
           {config.showSpinner ? (
-            <>
-              <div className="absolute inset-0 border-4 border-gray-700 rounded-full" />
-              <div className={`absolute inset-0 border-4 border-t-transparent rounded-full animate-spin ${config.bgColor.replace('bg-', 'border-')}`} />
-            </>
+            <div className="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-300 rounded-full animate-spin" />
           ) : (
-            <div className="w-20 h-20 flex items-center justify-center text-red-500">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-12 h-12"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-                />
-              </svg>
-            </div>
+            <svg className="w-8 h-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
           )}
         </div>
 
-        {/* Status Title */}
-        <h2 className="text-xl font-bold text-white mb-2">
+        {/* Title */}
+        <h2 className="text-center text-lg font-medium text-gray-800 dark:text-gray-100 mb-1">
           {config.title}
         </h2>
 
-        {/* Status Message */}
-        <p className="text-gray-400 text-sm mb-2">
+        {/* Message */}
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-3">
           {config.message}
         </p>
 
         {/* Error Details */}
         {lastError && connectionState === 'error' && (
-          <p className="text-red-400 text-xs mb-4 font-mono bg-gray-900 p-2 rounded">
+          <p className="text-center text-xs text-gray-400 mb-3 font-mono">
             {lastError}
           </p>
         )}
 
         {/* Server Info */}
-        <p className="text-gray-500 text-xs mb-4">
-          Server: {SERVER_URL}
+        <p className="text-center text-xs text-gray-400 mb-4">
+          {SERVER_URL}
         </p>
 
         {/* Retry Button */}
         {config.showRetry && (
           <button
             onClick={handleRetry}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-600 hover:bg-gray-700 dark:hover:bg-gray-500 text-white text-sm font-medium rounded transition-colors"
           >
-            Retry Connection
+            Retry
           </button>
-        )}
-
-        {/* Connection Tips */}
-        {connectionState === 'error' && (
-          <div className="mt-4 text-left text-xs text-gray-500 bg-gray-900 p-3 rounded">
-            <p className="font-medium text-gray-400 mb-1">Troubleshooting:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Make sure the server is running</li>
-              <li>Check if port 3001 is available</li>
-              <li>Verify your network connection</li>
-            </ul>
-          </div>
         )}
       </div>
     </div>
   );
 }
 
-// Small status indicator for the header (when connected with issues)
 export function ConnectionIndicator() {
   const connectionState = useAgentStore(state => state.connectionState);
-  const reconnectAttempts = useAgentStore(state => state.reconnectAttempts);
 
-  if (connectionState === 'connected' && reconnectAttempts === 0) {
+  if (connectionState === 'connected') {
     return (
-      <div className="flex items-center gap-2 text-green-500 text-sm">
-        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
         <span className="hidden sm:inline">Connected</span>
       </div>
     );
   }
 
-  if (connectionState === 'connected') {
-    return (
-      <div className="flex items-center gap-2 text-yellow-500 text-sm">
-        <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-        <span className="hidden sm:inline">Unstable</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-2 text-red-500 text-sm">
-      <span className="w-2 h-2 bg-red-500 rounded-full" />
-      <span className="hidden sm:inline">Disconnected</span>
+    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+      <span className="hidden sm:inline">Offline</span>
     </div>
   );
 }

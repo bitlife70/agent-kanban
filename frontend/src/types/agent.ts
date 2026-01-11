@@ -6,7 +6,6 @@ export interface TerminalInfo {
   sessionId?: string;
 }
 
-// 세션 이벤트 타입
 export interface SessionEvent {
   type: 'task_created' | 'task_started' | 'task_completed' | 'task_failed' | 'status_changed';
   timestamp: number;
@@ -25,7 +24,6 @@ export interface Agent {
   parentAgentId?: string;
   children: string[];
   terminalInfo: TerminalInfo;
-  // 세션 대시보드 필드
   goal?: string;
   progress: number;
   blocker?: string;
@@ -44,18 +42,28 @@ export const STATUS_LABELS: Record<AgentStatus, string> = {
   error: 'Error'
 };
 
+// Simplified corporate colors - muted and professional
 export const STATUS_COLORS: Record<AgentStatus, string> = {
-  idle: 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600',
-  working: 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700',
-  waiting: 'bg-yellow-100 dark:bg-yellow-900/50 border-yellow-300 dark:border-yellow-700',
-  completed: 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700',
-  error: 'bg-red-100 dark:bg-red-900/50 border-red-300 dark:border-red-700'
+  idle: 'bg-white dark:bg-gray-800 border-l-4 border-l-gray-400 border-y border-r border-gray-200 dark:border-gray-700',
+  working: 'bg-white dark:bg-gray-800 border-l-4 border-l-blue-500 border-y border-r border-gray-200 dark:border-gray-700',
+  waiting: 'bg-white dark:bg-gray-800 border-l-4 border-l-amber-500 border-y border-r border-gray-200 dark:border-gray-700',
+  completed: 'bg-white dark:bg-gray-800 border-l-4 border-l-emerald-500 border-y border-r border-gray-200 dark:border-gray-700',
+  error: 'bg-white dark:bg-gray-800 border-l-4 border-l-red-500 border-y border-r border-gray-200 dark:border-gray-700'
 };
 
 export const STATUS_HEADER_COLORS: Record<AgentStatus, string> = {
-  idle: 'bg-gray-500',
+  idle: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  working: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  waiting: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  completed: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  error: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+};
+
+// Status dot colors for indicators
+export const STATUS_DOT_COLORS: Record<AgentStatus, string> = {
+  idle: 'bg-gray-400',
   working: 'bg-blue-500',
-  waiting: 'bg-yellow-500',
-  completed: 'bg-green-500',
+  waiting: 'bg-amber-500',
+  completed: 'bg-emerald-500',
   error: 'bg-red-500'
 };

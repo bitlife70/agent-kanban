@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from 'react';
-import { Agent, STATUS_COLORS, AgentStatus } from '../types/agent';
+import { Agent, STATUS_COLORS, AgentStatus, STATUS_DOT_COLORS } from '../types/agent';
 import { useInterval } from '../hooks/useInterval';
 
 interface AgentCardProps {
@@ -23,22 +23,56 @@ function formatElapsedTime(startTime: number): string {
 }
 
 function formatTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString();
+  return new Date(timestamp).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 }
 
-const STATUS_ICONS: Record<AgentStatus, string> = {
-  idle: '😴',
-  working: '🔨',
-  waiting: '⏳',
-  completed: '✅',
-  error: '❌'
-};
+// Simple monochrome status icons
+function StatusIcon({ status }: { status: AgentStatus }) {
+  const iconClass = "w-4 h-4 text-gray-500 dark:text-gray-400";
+
+  switch (status) {
+    case 'idle':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      );
+    case 'working':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+        </svg>
+      );
+    case 'waiting':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      );
+    case 'completed':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      );
+    case 'error':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      );
+  }
+}
 
 function AgentCardComponent({ agent, onClick }: AgentCardProps) {
   const [elapsedTime, setElapsedTime] = useState(formatElapsedTime(agent.startTime));
   const colorClass = STATUS_COLORS[agent.status];
+  const dotColor = STATUS_DOT_COLORS[agent.status];
 
-  // Update elapsed time every second for active agents
   useInterval(
     useCallback(() => {
       setElapsedTime(formatElapsedTime(agent.startTime));
@@ -54,62 +88,57 @@ function AgentCardComponent({ agent, onClick }: AgentCardProps) {
     <div
       onClick={handleClick}
       className={`
-        p-3 rounded-lg border-2 ${colorClass} shadow-sm
-        hover:shadow-lg hover:scale-[1.02]
-        transition-all duration-200 ease-out
+        p-3 rounded ${colorClass}
+        hover:shadow-md
+        transition-shadow duration-150
         cursor-pointer
-        animate-fade-in
       `}
     >
+      {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-lg" title={agent.status}>
-            {STATUS_ICONS[agent.status]}
-          </span>
-          <span className="font-semibold text-gray-800 dark:text-gray-100 truncate max-w-[140px]" title={agent.name}>
+          <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+          <span className="font-medium text-sm text-gray-800 dark:text-gray-100 truncate max-w-[150px]" title={agent.name}>
             {agent.name}
           </span>
         </div>
-        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-white/50 dark:bg-black/20 px-1.5 py-0.5 rounded">
-          {agent.id.slice(0, 8)}
+        <span className="text-xs text-gray-400 font-mono">
+          {agent.id.slice(0, 6)}
         </span>
       </div>
 
+      {/* Prompt */}
       {agent.prompt && (
-        <div className="mb-2 bg-blue-50/50 dark:bg-blue-900/20 rounded px-2 py-1 border-l-2 border-blue-400 dark:border-blue-600">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Prompt:</p>
-          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2" title={agent.prompt}>
-            {agent.prompt}
-          </p>
+        <div className="mb-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-2 bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1">
+          {agent.prompt}
         </div>
       )}
 
+      {/* Task Description */}
       {agent.taskDescription && (
-        <p className="text-sm text-gray-700 dark:text-gray-200 mb-2 line-clamp-2 bg-white/30 dark:bg-black/20 rounded px-2 py-1" title={agent.taskDescription}>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-1">
           {agent.taskDescription}
         </p>
       )}
 
-      {/* Session Dashboard Fields */}
+      {/* Goal */}
       {agent.goal && (
-        <div className="mb-2 bg-purple-50/50 dark:bg-purple-900/20 rounded px-2 py-1 border-l-2 border-purple-400 dark:border-purple-600">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Goal:</p>
-          <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2" title={agent.goal}>
-            {agent.goal}
-          </p>
+        <div className="mb-2 text-xs border-l-2 border-gray-300 dark:border-gray-600 pl-2">
+          <span className="text-gray-400">Goal:</span>
+          <span className="text-gray-600 dark:text-gray-300 ml-1 line-clamp-1">{agent.goal}</span>
         </div>
       )}
 
       {/* Progress Bar */}
       {agent.taskIds && agent.taskIds.length > 0 && (
         <div className="mb-2">
-          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
             <span>Progress</span>
             <span>{agent.progress}%</span>
           </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
             <div
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+              className="bg-gray-500 dark:bg-gray-400 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${agent.progress}%` }}
             />
           </div>
@@ -118,56 +147,38 @@ function AgentCardComponent({ agent, onClick }: AgentCardProps) {
 
       {/* Blocker */}
       {agent.blocker && (
-        <div className="mb-2 bg-red-50/50 dark:bg-red-900/20 rounded px-2 py-1 border-l-2 border-red-400 dark:border-red-600">
-          <p className="text-xs text-red-600 dark:text-red-400">Blocker: {agent.blocker}</p>
+        <div className="mb-2 text-xs text-red-600 dark:text-red-400 border-l-2 border-red-400 pl-2">
+          Blocker: {agent.blocker}
         </div>
       )}
 
       {/* Next Action */}
       {agent.nextAction && (
-        <div className="mb-2 bg-yellow-50/50 dark:bg-yellow-900/20 rounded px-2 py-1 border-l-2 border-yellow-400 dark:border-yellow-600">
-          <p className="text-xs text-yellow-700 dark:text-yellow-400">Next: {agent.nextAction}</p>
+        <div className="mb-2 text-xs text-gray-500 dark:text-gray-400 border-l-2 border-amber-400 pl-2">
+          Next: {agent.nextAction}
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span>⏱️</span>
-            <span className="font-medium">{elapsedTime}</span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-            <span>🕐</span>
-            <span>{formatTime(agent.lastActivity)}</span>
-          </div>
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          <span>{elapsedTime}</span>
+          <span>{formatTime(agent.lastActivity)}</span>
         </div>
-
-        {agent.terminalInfo.cwd && (
-          <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-            <span>📁</span>
-            <span className="truncate" title={agent.terminalInfo.cwd}>
-              {agent.terminalInfo.cwd.split(/[/\\]/).slice(-2).join('/')}
-            </span>
-          </div>
-        )}
+        <StatusIcon status={agent.status} />
       </div>
 
+      {/* Sub-info */}
       {(agent.children.length > 0 || agent.parentAgentId || (agent.taskIds && agent.taskIds.length > 0)) && (
-        <div className="mt-2 pt-2 border-t border-gray-300/50 dark:border-gray-600/50 flex items-center justify-between text-xs flex-wrap gap-1">
+        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 text-xs text-gray-400">
           {agent.taskIds && agent.taskIds.length > 0 && (
-            <span className="text-green-600 dark:text-green-400 font-medium">
-              📋 {agent.taskIds.length} task{agent.taskIds.length > 1 ? 's' : ''}
-            </span>
+            <span>{agent.taskIds.length} tasks</span>
           )}
           {agent.children.length > 0 && (
-            <span className="text-blue-600 dark:text-blue-400 font-medium">
-              👥 {agent.children.length} sub-agent{agent.children.length > 1 ? 's' : ''}
-            </span>
+            <span>{agent.children.length} sub-agents</span>
           )}
           {agent.parentAgentId && (
-            <span className="text-purple-600 dark:text-purple-400">
-              ↑ {agent.parentAgentId.slice(0, 8)}
-            </span>
+            <span>Parent: {agent.parentAgentId.slice(0, 6)}</span>
           )}
         </div>
       )}
